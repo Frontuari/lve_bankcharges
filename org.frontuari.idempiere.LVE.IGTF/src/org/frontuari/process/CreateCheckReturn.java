@@ -79,7 +79,6 @@ public class CreateCheckReturn extends SvrProcess {
 		//	create Debit Note for Check Return
 		createDebitNoteCHR(p_C_BPartner_ID, p_Receipt_ID, p_C_DocTypeTarget_ID, p_C_Charge_ID, p_DateTrx);
 	    //	Set Value into Object pay for created Allocation
-		//	pay = new MPayment(getCtx(), p_C_Payment_ID, get_TrxName());
 		createAssignment(p_DateTrx, debitNoteCHR, pay); 
 		
 		if(p_PrintDirect)
@@ -183,6 +182,10 @@ public class CreateCheckReturn extends SvrProcess {
 		
 		if(debitNoteCHR.processIt(MInvoice.DOCACTION_Complete)){
 			debitNoteCHR.saveEx();
+			//	Set Debit Note into Receipt
+			MPayment receipt = new MPayment(getCtx(), Receipt_ID, get_TrxName());
+			receipt.set_ValueOfColumn("LVE_InvoiceAffected_ID", debitNoteCHR.getC_Invoice_ID());
+			receipt.saveEx();
 		}
 		else {
 			rollback();
