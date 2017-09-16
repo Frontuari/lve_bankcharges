@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         id="org.frontuari.process.CreateCheckReturn"
+         name="CreateCheckReturn"
+         point="org.adempiere.base.Process">
+      <process
+            class="org.frontuari.process.CreateCheckReturn"
+            priority="0">
+      </process>
+   </extension>
+</plugin>
