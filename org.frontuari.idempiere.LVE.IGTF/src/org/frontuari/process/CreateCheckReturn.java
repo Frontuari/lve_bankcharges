@@ -27,6 +27,7 @@ import org.compiere.util.Env;
 import org.compiere.util.Msg;
 
 public class CreateCheckReturn extends SvrProcess {
+	private int p_AD_Org_ID;
 	private int p_C_BPartner_ID;
 	private int p_Receipt_ID;
 	private int p_C_BankAccount_ID;
@@ -48,8 +49,10 @@ public class CreateCheckReturn extends SvrProcess {
 		       String name = parameter.getParameterName();
 		       if (parameter.getParameter() == null)
 		         continue;
-		       if (name.equalsIgnoreCase("C_BPartner_ID"))
-		         p_C_BPartner_ID = parameter.getParameterAsInt();
+		       if (name.equalsIgnoreCase("AD_Org_ID"))
+		         p_AD_Org_ID = parameter.getParameterAsInt();
+		       else if (name.equalsIgnoreCase("C_BPartner_ID"))
+			         p_C_BPartner_ID = parameter.getParameterAsInt();
 		       else if (name.equalsIgnoreCase("CheckNo"))
 		         p_Receipt_ID = parameter.getParameterAsInt();
 		       else if (name.equals("C_BankAccount_ID"))
@@ -94,6 +97,7 @@ public class CreateCheckReturn extends SvrProcess {
 		MPayment receipt = new MPayment(getCtx(),Receipt_ID,get_TrxName());
 		
 		pay = new MPayment(getCtx(), 0, get_TrxName());
+		pay.setAD_Org_ID(p_AD_Org_ID);
 		pay.setDocumentNo(receipt.getCheckNo());
 		pay.setCheckNo(receipt.getCheckNo());
 		pay.setDateTrx(DateTrx);
@@ -123,6 +127,7 @@ public class CreateCheckReturn extends SvrProcess {
 	public void createDebitNoteCHR(int BPartner, int Receipt_ID, int DocType, int Charge, Timestamp DateTrx) throws AdempiereUserError {
 		//	Create Debit Note
 		debitNoteCHR = new MInvoice(getCtx(), 0, get_TrxName());
+		debitNoteCHR.setAD_Org_ID(p_AD_Org_ID);
 		debitNoteCHR.setC_BPartner_ID(BPartner);
 		debitNoteCHR.setC_DocTypeTarget_ID(DocType);
 		debitNoteCHR.setDateInvoiced(DateTrx);
@@ -159,6 +164,7 @@ public class CreateCheckReturn extends SvrProcess {
 				//	Create Line
 				MInvoiceLine debitNoteCHRline = new MInvoiceLine(debitNoteCHR);
 				
+				debitNoteCHRline.setAD_Org_ID(p_AD_Org_ID);
 				debitNoteCHRline.setC_Invoice_ID(debitNoteCHR.getC_Invoice_ID());
 				debitNoteCHRline.setC_Charge_ID(Charge);
 				debitNoteCHRline.setQty(BigDecimal.ONE);
@@ -197,6 +203,7 @@ public class CreateCheckReturn extends SvrProcess {
 	{
 		MAllocationHdr AHeader = new MAllocationHdr(getCtx(), 0, get_TrxName());
 		
+		AHeader.setAD_Org_ID(p_AD_Org_ID);
 		AHeader.setDateTrx(DateTrx);
 		AHeader.setDateAcct(DateTrx);
 		AHeader.setC_Currency_ID(invoice.getC_Currency_ID());
@@ -205,6 +212,7 @@ public class CreateCheckReturn extends SvrProcess {
 		
 		MAllocationLine ALine = new MAllocationLine(AHeader);
 		
+		ALine.setAD_Org_ID(p_AD_Org_ID);
 		ALine.setC_BPartner_ID(invoice.getC_BPartner_ID());
 		ALine.setC_Invoice_ID(invoice.getC_Invoice_ID());
 		ALine.setC_Payment_ID(payment.getC_Payment_ID());
