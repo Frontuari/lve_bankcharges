@@ -10,4 +10,9 @@
             priority="0">
       </process>
    </extension>
+   <extension
+         id="org.frontuari.process.BankTransfer"
+         name="BankTransfer"
+         point="org.adempiere.base.Process">
+   </extension>
 </plugin>

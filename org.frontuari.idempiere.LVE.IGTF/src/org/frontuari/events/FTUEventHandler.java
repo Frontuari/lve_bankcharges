@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import org.adempiere.base.event.AbstractEventHandler;
 import org.adempiere.base.event.IEventTopics;
 import org.adempiere.exceptions.AdempiereException;
+import org.compiere.model.MDocType;
 import org.compiere.model.MOrgInfo;
 import org.compiere.model.MPayment;
 import org.compiere.model.PO;
@@ -44,10 +45,16 @@ public class FTUEventHandler extends AbstractEventHandler{
 			if(type.equalsIgnoreCase(IEventTopics.DOC_AFTER_COMPLETE)){
 				MPayment pay = (MPayment)po;
 				MOrgInfo oi = MOrgInfo.get(po.getCtx(), pay.getAD_Org_ID(),po.get_TrxName());
+				//	Get Document Type from Payment Object
+				MDocType dt = new MDocType(po.getCtx(),pay.getC_DocType_ID(),po.get_TrxName());
 				//	Check if Org Trx is Special Tax Payer
 				if(oi.get_ValueAsBoolean("IsSpecialTaxPayer")){
 					//	Not Reversal Document 
-					if(pay.getReversal_ID()==0){
+					if(pay.getReversal_ID()==0
+							//	Not Bank Account Type Cash Journal
+							&& !pay.getC_BankAccount().getBankAccountType().equalsIgnoreCase("B") 
+							//	Not Check Return Document
+							&& dt.get_Value("IsCheckReturn").equals("N")){
 						//	Build Where Clause
 						String whereclause = "ValidFrom <= ? ";
 						if(pay.isReceipt()){
@@ -65,7 +72,7 @@ public class FTUEventHandler extends AbstractEventHandler{
 							MLVE_IGTF igtf = new MLVE_IGTF(po.getCtx(),IGTF_ID,po.get_TrxName());  
 							String sql ="SELECT * FROM LVE_IGTF_Exception "
 									+ "WHERE LVE_IGTF_ID = ? "
-									+ "AND (C_BankAccountFrom_ID = ? OR C_BankAccountFrom_ID IS NULL) "
+									+ (pay.isReceipt() ? "AND (C_BankAccountTo_ID = ? OR C_BankAccountTo_ID IS NULL) " : "AND (C_BankAccountFrom_ID = ? OR C_BankAccountFrom_ID IS NULL) ") 
 									+ "AND (C_BPartner_ID = ? OR C_BPartner_ID IS NULL) "
 									+ "AND (C_Charge_ID = ? OR C_Charge_ID IS NULL) ";
 							PreparedStatement pst = null;

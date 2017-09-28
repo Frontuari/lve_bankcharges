@@ -42,7 +42,6 @@ public class CreateCheckReturn extends SvrProcess {
 	
 	@Override
 	protected void prepare() {
-		// TODO Auto-generated method stub
 		ProcessInfoParameter[] params = getParameter();
 		
 		for (ProcessInfoParameter parameter : params) {
@@ -76,7 +75,6 @@ public class CreateCheckReturn extends SvrProcess {
 
 	@Override
 	protected String doIt() throws Exception {
-		// TODO Auto-generated method stub
 		//	create a Payment
 		createPayment(p_C_BankAccount_ID, p_C_BPartner_ID, p_Receipt_ID, p_C_DocType_ID, p_DateAcct);
 		//	create Debit Note for Check Return

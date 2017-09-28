@@ -2,6 +2,7 @@ package org.frontuari.factories;
 
 import org.adempiere.base.IProcessFactory;
 import org.compiere.process.ProcessCall;
+import org.frontuari.process.BankTransfer;
 import org.frontuari.process.CreateCheckReturn;
 
 public class FTUProcessFactory implements IProcessFactory {
@@ -12,6 +13,9 @@ public class FTUProcessFactory implements IProcessFactory {
 		
 		if(className.equals("org.frontuari.process.CreateCheckReturn"))
 			return new CreateCheckReturn();
+		
+		if(className.equals("org.frontuari.process.BankTransfer"))
+			return new BankTransfer();
 		
 		return null;
 	}
