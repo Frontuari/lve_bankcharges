@@ -123,8 +123,13 @@ public class BankTransfer extends SvrProcess
 		if (p_To_C_BankAccount_ID == 0 || p_From_C_BankAccount_ID == 0)
 			throw new AdempiereUserError (Msg.parseTranslation(getCtx(), "@FillMandatory@: @To_C_BankAccount_ID@, @From_C_BankAccount_ID@"));
 
-		if (p_To_C_BankAccount_ID == p_From_C_BankAccount_ID)
-			throw new AdempiereUserError (Msg.getMsg(getCtx(), "BankFromToMustDiffer"));
+		//	Allow movement between the same account only when it is of the small box type
+		MBankAccount baF = new MBankAccount(getCtx(), p_From_C_BankAccount_ID, get_TrxName());
+		MBankAccount baT = new MBankAccount(getCtx(), p_To_C_BankAccount_ID, get_TrxName());
+		if(!baF.getBankAccountType().equalsIgnoreCase(MBankAccount.BANKACCOUNTTYPE_Cash)
+				&& !baT.getBankAccountType().equalsIgnoreCase(MBankAccount.BANKACCOUNTTYPE_Cash))
+			if (p_To_C_BankAccount_ID == p_From_C_BankAccount_ID)
+				throw new AdempiereUserError (Msg.getMsg(getCtx(), "BankFromToMustDiffer"));
 		
 		if (p_C_BPartner_ID == 0)
 			throw new AdempiereUserError (Msg.parseTranslation(getCtx(), "@FillMandatory@ @C_BPartner_ID@"));
