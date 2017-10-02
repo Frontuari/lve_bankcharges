@@ -118,6 +118,7 @@ public class BankTransfer extends SvrProcess
 		if (log.isLoggable(Level.INFO)) log.info("From Bank="+p_From_C_BankAccount_ID+" - To Bank="+p_To_C_BankAccount_ID
 				+ " - C_BPartner_ID="+p_C_BPartner_ID+"- C_Charge_ID= "+p_C_Charge_ID+" - Amount="+p_Amount+" - DocumentNo="+p_DocumentNo
 				+ " - Description="+p_Description+ " - Statement Date="+p_StatementDate + " - Date Account="+p_DateAcct
+				+ " - Document Type Source="+p_C_DocType_ID+ " - Document Type Target="+p_C_DocTypeTarget_ID
 				+ " - Tender Type Source="+p_TenderTypeSource+ " - Tender Type Target="+p_TenderTypeTarget);
 
 		if (p_To_C_BankAccount_ID == 0 || p_From_C_BankAccount_ID == 0)
@@ -188,7 +189,6 @@ public class BankTransfer extends SvrProcess
 			paymentBankFrom.setC_ConversionType_ID(p_C_ConversionType_ID);	
 		paymentBankFrom.setPayAmt(p_Amount);
 		paymentBankFrom.setOverUnderAmt(Env.ZERO);
-		paymentBankFrom.setC_DocType_ID(false);
 		paymentBankFrom.setC_Charge_ID(p_C_Charge_ID);
 		paymentBankFrom.saveEx();
 		if(!paymentBankFrom.processIt(MPayment.DOCACTION_Complete)) {
@@ -209,9 +209,9 @@ public class BankTransfer extends SvrProcess
 		paymentBankTo.setDateAcct(p_DateAcct);
 		paymentBankTo.setDateTrx(p_StatementDate);
 		//	Set DocumentType 
-		paymentBankFrom.setC_DocType_ID(p_C_DocTypeTarget_ID);
+		paymentBankTo.setC_DocType_ID(p_C_DocTypeTarget_ID);
 		//	Set TenderType Target if not null
-		paymentBankTo.setTenderType((p_TenderTypeSource.equals("") ? MPayment.TENDERTYPE_DirectDeposit : p_TenderTypeSource));
+		paymentBankTo.setTenderType((p_TenderTypeTarget.equals("") ? MPayment.TENDERTYPE_DirectDeposit : p_TenderTypeTarget));
 		paymentBankTo.setDescription(p_Description);
 		paymentBankTo.setC_BPartner_ID (p_C_BPartner_ID);
 		paymentBankTo.setC_Currency_ID(p_C_Currency_ID);
@@ -219,7 +219,6 @@ public class BankTransfer extends SvrProcess
 			paymentBankTo.setC_ConversionType_ID(p_C_ConversionType_ID);	
 		paymentBankTo.setPayAmt(p_Amount);
 		paymentBankTo.setOverUnderAmt(Env.ZERO);
-		paymentBankTo.setC_DocType_ID(true);
 		paymentBankTo.setC_Charge_ID(p_C_Charge_ID);
 		//	Set Reference Payment
 		paymentBankTo.setRef_Payment_ID(paymentBankFrom.getC_Payment_ID());
