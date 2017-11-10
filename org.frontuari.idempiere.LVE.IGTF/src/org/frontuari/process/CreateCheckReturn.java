@@ -96,8 +96,10 @@ public class CreateCheckReturn extends SvrProcess {
 		
 		pay = new MPayment(getCtx(), 0, get_TrxName());
 		pay.setAD_Org_ID(p_AD_Org_ID);
-		pay.setDocumentNo(receipt.getCheckNo());
+		pay.setDocumentNo((receipt.getCheckNo()!=null ? receipt.getCheckNo() : receipt.get_ValueAsString("ReferenceNo")));
 		pay.setCheckNo(receipt.getCheckNo());
+		//	Support for Transferences
+		pay.set_ValueOfColumn("ReferenceNo", receipt.get_ValueAsString("ReferenceNo"));
 		pay.setDateTrx(DateTrx);
 		pay.setDateAcct(DateTrx);
 		pay.setC_DocType_ID(DocType);
@@ -105,7 +107,7 @@ public class CreateCheckReturn extends SvrProcess {
 		pay.setC_BPartner_ID(BPartner);
 		pay.setC_Currency_ID(receipt.getC_Currency_ID());
 		pay.setPayAmt(receipt.getPayAmt());
-		pay.setTenderType("K");
+		pay.setTenderType(receipt.getTenderType());
 		pay.saveEx(get_TrxName());
 		
 		if(pay.getPayAmt().compareTo(BigDecimal.ZERO)==0){
