@@ -54,7 +54,7 @@ public class FTUEventHandler extends AbstractEventHandler{
 							//	Not Bank Account Type Cash Journal
 							&& !pay.getC_BankAccount().getBankAccountType().equalsIgnoreCase("B") 
 							//	Not Check Return Document
-							&& dt.get_Value("IsCheckReturn").equals("N")){
+							&& !dt.get_ValueAsBoolean("IsCheckReturn")){
 						//	Build Where Clause
 						String whereclause = "ValidFrom <= ? ";
 						if(pay.isReceipt()){
@@ -71,17 +71,20 @@ public class FTUEventHandler extends AbstractEventHandler{
 						if(IGTF_ID > 0){
 							MLVE_IGTF igtf = new MLVE_IGTF(po.getCtx(),IGTF_ID,po.get_TrxName());  
 							String sql ="SELECT * FROM LVE_IGTF_Exception "
-									+ "WHERE LVE_IGTF_ID = ? "
-									+ (pay.isReceipt() ? "AND (C_BankAccountTo_ID = ? OR C_BankAccountTo_ID IS NULL) " : "AND (C_BankAccountFrom_ID = ? OR C_BankAccountFrom_ID IS NULL) ") 
+									+ "WHERE LVE_IGTF_ID = ? " 
+									+ "AND (CASE WHEN IsProprietaryTransfer = 'Y' THEN EXISTS (SELECT 1 FROM AD_OrgInfo oi,C_BPartner bp,LCO_TaxIdType tp "
+									+ "WHERE (tp.LCO_TaxIdType_ID = bp.LCO_TaxIdType_ID OR bp.LCO_TaxIdType_ID IS NULL) AND (COALESCE(tp.Name,'')||bp.TaxID)=REPLACE(oi.TaxID,'-','') "
+									+ "AND bp.C_BPartner_ID = ? AND oi.AD_Org_ID = ?) ELSE TRUE END)"
 									+ "AND (C_BPartner_ID = ? OR C_BPartner_ID IS NULL) "
 									+ "AND (C_Charge_ID = ? OR C_Charge_ID IS NULL) ";
 							PreparedStatement pst = null;
 							try {
 								pst = DB.prepareStatement(sql, null);
 								pst.setInt(1, igtf.getLVE_IGTF_ID());
-								pst.setInt(2, pay.getC_BankAccount_ID());
-								pst.setInt(3, pay.getC_BPartner_ID());
-								pst.setInt(4, pay.getC_Charge_ID());
+								pst.setInt(2, pay.getC_BPartner_ID());
+								pst.setInt(3, pay.getAD_Org_ID());
+								pst.setInt(4, pay.getC_BPartner_ID());
+								pst.setInt(5, pay.getC_Charge_ID());
 								ResultSet rs = pst.executeQuery();
 								if (rs.next()) {
 									log.warning("payment / receipt "+pay.getDocumentNo()+" exempt from tax on large financial transactions");
@@ -90,7 +93,12 @@ public class FTUEventHandler extends AbstractEventHandler{
 									MPayment igtfPayment = new MPayment(po.getCtx(), 0, po.get_TrxName());
 									po.copyValues(pay, igtfPayment);	
 									igtfPayment.setC_DocType_ID(igtf.getC_DocType_ID());
-									igtfPayment.setDescription(igtf.getValue());
+									if(igtfPayment.getDescription().length() > 0){
+										igtfPayment.addDescription(igtf.getValue());
+									}
+									else{
+										igtfPayment.setDescription(igtf.getValue());
+									}
 									igtfPayment.setC_Charge_ID(igtf.getC_Charge_ID());
 									igtfPayment.setTenderType(igtf.getTenderType());
 									igtfPayment.setPayAmt(igtf.calculateTax(pay.getPayAmt()));
