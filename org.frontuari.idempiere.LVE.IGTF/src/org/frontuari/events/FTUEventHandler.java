@@ -93,7 +93,8 @@ public class FTUEventHandler extends AbstractEventHandler{
 									MPayment igtfPayment = new MPayment(po.getCtx(), 0, po.get_TrxName());
 									po.copyValues(pay, igtfPayment);	
 									igtfPayment.setC_DocType_ID(igtf.getC_DocType_ID());
-									if(igtfPayment.getDescription().length() > 0){
+									System.out.println(igtfPayment.getDescription());
+									if(igtfPayment.getDescription() != null){
 										igtfPayment.addDescription(igtf.getValue());
 									}
 									else{
