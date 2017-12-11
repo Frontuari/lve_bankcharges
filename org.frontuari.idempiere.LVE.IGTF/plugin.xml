@@ -14,5 +14,9 @@
          id="org.frontuari.process.BankTransfer"
          name="BankTransfer"
          point="org.adempiere.base.Process">
+      <process
+            class="org.frontuari.process.BankTransfer"
+            priority="0">
+      </process>
    </extension>
 </plugin>

@@ -29,7 +29,7 @@ import org.compiere.util.Msg;
 public class CreateCheckReturn extends SvrProcess {
 	private int p_AD_Org_ID;
 	private int p_C_BPartner_ID;
-	private int p_Receipt_ID;
+	private int p_Ref_Payment_ID;
 	private int p_C_BankAccount_ID;
 	private int p_C_DocType_ID;
 	private int p_C_DocTypeTarget_ID;
@@ -39,75 +39,96 @@ public class CreateCheckReturn extends SvrProcess {
 	private boolean p_PrintDirect;
 	private MInvoice debitNoteCHR;
 	private MPayment pay;
+	private boolean p_IsSOTrx;
 	
 	@Override
 	protected void prepare() {
 		ProcessInfoParameter[] params = getParameter();
 		
 		for (ProcessInfoParameter parameter : params) {
-		       String name = parameter.getParameterName();
-		       if (parameter.getParameter() == null)
-		         continue;
-		       if (name.equalsIgnoreCase("AD_Org_ID"))
-		         p_AD_Org_ID = parameter.getParameterAsInt();
-		       else if (name.equalsIgnoreCase("C_BPartner_ID"))
-			         p_C_BPartner_ID = parameter.getParameterAsInt();
-		       else if (name.equalsIgnoreCase("CheckNo"))
-		         p_Receipt_ID = parameter.getParameterAsInt();
-		       else if (name.equals("C_BankAccount_ID"))
-		    	   p_C_BankAccount_ID = parameter.getParameterAsInt();
-		       else if (name.equals("C_DocType_ID"))
-		    	   p_C_DocType_ID = parameter.getParameterAsInt();
-		       else if (name.equalsIgnoreCase("DateAcct"))
-		    	   p_DateAcct = ((Timestamp)parameter.getParameter());
-		       else if (name.equalsIgnoreCase("C_DocTypeTarget_ID"))
-		    	   p_C_DocTypeTarget_ID = parameter.getParameterAsInt();
-		       else if (name.equalsIgnoreCase("C_Charge_ID"))
-		    	   p_C_Charge_ID = parameter.getParameterAsInt();
-		       else if (name.equalsIgnoreCase("DateTrx"))
-		    	   p_DateTrx = ((Timestamp)parameter.getParameter());
-		       else if(name.equalsIgnoreCase("IsPrinted"))
-		    	   p_PrintDirect = parameter.getParameterAsBoolean();
-		       else
-		         log.log(Level.SEVERE, "Unknown Parameter:" + name);
-		     }
+	       String name = parameter.getParameterName();
+	       if (parameter.getParameter() == null)
+	         continue;
+	       if (name.equalsIgnoreCase("AD_Org_ID"))
+	         p_AD_Org_ID = parameter.getParameterAsInt();
+	       else if (name.equalsIgnoreCase("C_BPartner_ID"))
+		         p_C_BPartner_ID = parameter.getParameterAsInt();
+	       else if (name.equalsIgnoreCase("CheckNo"))
+	         p_Ref_Payment_ID = parameter.getParameterAsInt();
+	       else if (name.equals("C_BankAccount_ID"))
+	    	   p_C_BankAccount_ID = parameter.getParameterAsInt();
+	       else if (name.equals("C_DocType_ID"))
+	    	   p_C_DocType_ID = parameter.getParameterAsInt();
+	       else if (name.equalsIgnoreCase("DateAcct"))
+	    	   p_DateAcct = ((Timestamp)parameter.getParameter());
+	       else if (name.equalsIgnoreCase("C_DocTypeTarget_ID"))
+	    	   p_C_DocTypeTarget_ID = parameter.getParameterAsInt();
+	       else if (name.equalsIgnoreCase("C_Charge_ID"))
+	    	   p_C_Charge_ID = parameter.getParameterAsInt();
+	       else if (name.equalsIgnoreCase("DateTrx"))
+	    	   p_DateTrx = ((Timestamp)parameter.getParameter());
+	       else if(name.equalsIgnoreCase("IsPrinted"))
+	    	   p_PrintDirect = parameter.getParameterAsBoolean();
+	       else if(name.equalsIgnoreCase("IsSOTrx"))
+	    	   p_IsSOTrx = parameter.getParameterAsBoolean();
+	       else
+	         log.log(Level.SEVERE, "Unknown Parameter:" + name);
+	     }
 	}
 
 	@Override
 	protected String doIt() throws Exception {
-		//	create a Payment
-		createPayment(p_C_BankAccount_ID, p_C_BPartner_ID, p_Receipt_ID, p_C_DocType_ID, p_DateAcct);
-		//	create Debit Note for Check Return
-		createDebitNoteCHR(p_C_BPartner_ID, p_Receipt_ID, p_C_DocTypeTarget_ID, p_C_Charge_ID, p_DateTrx);
-	    //	Set Value into Object pay for created Allocation
-		createAssignment(p_DateTrx, debitNoteCHR, pay); 
-		
-		if(p_PrintDirect)
-			printDocuments(debitNoteCHR.getC_Invoice_ID(), p_C_DocTypeTarget_ID);
-		
-		addLog(pay.getC_Payment_ID(),pay.getDateTrx(),pay.getPayAmt(),pay.getDocumentNo(),pay.get_Table_ID(),pay.getC_Payment_ID());
-		addLog(debitNoteCHR.getC_Invoice_ID(), debitNoteCHR.getDateInvoiced(), debitNoteCHR.getGrandTotal(), debitNoteCHR.getDocumentNo(), debitNoteCHR.get_Table_ID(), debitNoteCHR.getC_Invoice_ID());
-	   return debitNoteCHR.getDocumentNo();
+		if(p_IsSOTrx)
+		{
+			//	create a Payment
+			createPayment(p_C_BankAccount_ID, p_C_BPartner_ID, p_Ref_Payment_ID, p_C_DocType_ID, p_DateAcct);
+			//	create Debit Note for Check Return
+			createDebitNoteCHR(p_C_BPartner_ID, p_Ref_Payment_ID, p_C_DocTypeTarget_ID, p_C_Charge_ID, p_DateTrx);
+		    //	Set Value into Object pay for created Allocation
+			createAssignment(p_DateTrx, debitNoteCHR, pay); 
+			
+			if(p_PrintDirect)
+				printDocuments(debitNoteCHR.getC_Invoice_ID(), p_C_DocTypeTarget_ID);
+			
+			addLog(pay.getC_Payment_ID(),pay.getDateTrx(),pay.getPayAmt(),pay.getDocumentNo(),pay.get_Table_ID(),pay.getC_Payment_ID());
+			addLog(debitNoteCHR.getC_Invoice_ID(), debitNoteCHR.getDateInvoiced(), debitNoteCHR.getGrandTotal(), debitNoteCHR.getDocumentNo(), debitNoteCHR.get_Table_ID(), debitNoteCHR.getC_Invoice_ID());
+		   return debitNoteCHR.getDocumentNo();	
+		}
+		else
+		{
+			//	UnAllocated Document
+			unAllocateDocument(p_C_BPartner_ID,p_Ref_Payment_ID);
+			//	create a Payment
+			createPayment(p_C_BankAccount_ID, p_C_BPartner_ID, p_Ref_Payment_ID, p_C_DocType_ID, p_DateAcct);
+			//	Allocated Document
+			createPayAssignment(p_DateAcct,p_Ref_Payment_ID,pay);
+			
+			addLog(pay.getC_Payment_ID(),pay.getDateTrx(),pay.getPayAmt(),pay.getDocumentNo(),pay.get_Table_ID(),pay.getC_Payment_ID());
+			return pay.getDocumentNo();
+		}
 	}
 	
-	public void createPayment(int BankAccount, int BPartner, int Receipt_ID, int DocType, Timestamp DateTrx) throws AdempiereUserError {
+	public void createPayment(int BankAccount, int BPartner, int Ref_Payment_ID, int DocType, Timestamp DateTrx) throws AdempiereUserError {
 		
-		MPayment receipt = new MPayment(getCtx(),Receipt_ID,get_TrxName());
+		MPayment ref_payment = new MPayment(getCtx(),Ref_Payment_ID,get_TrxName());
 		
 		pay = new MPayment(getCtx(), 0, get_TrxName());
 		pay.setAD_Org_ID(p_AD_Org_ID);
-		pay.setDocumentNo((receipt.getCheckNo()!=null ? receipt.getCheckNo() : receipt.get_ValueAsString("ReferenceNo")));
-		pay.setCheckNo(receipt.getCheckNo());
+		pay.setDocumentNo((ref_payment.getCheckNo()!=null ? ref_payment.getCheckNo() : (ref_payment.get_ValueAsString("ReferenceNo") != null ? ref_payment.get_ValueAsString("ReferenceNo") : ref_payment.getDocumentNo())));
+		pay.setCheckNo(ref_payment.getCheckNo());
 		//	Support for Transferences
-		pay.set_ValueOfColumn("ReferenceNo", receipt.get_ValueAsString("ReferenceNo"));
+		pay.set_ValueOfColumn("ReferenceNo", ref_payment.get_ValueAsString("ReferenceNo"));
 		pay.setDateTrx(DateTrx);
 		pay.setDateAcct(DateTrx);
 		pay.setC_DocType_ID(DocType);
 		pay.setC_BankAccount_ID(BankAccount);
 		pay.setC_BPartner_ID(BPartner);
-		pay.setC_Currency_ID(receipt.getC_Currency_ID());
-		pay.setPayAmt(receipt.getPayAmt());
-		pay.setTenderType(receipt.getTenderType());
+		pay.setC_Currency_ID(ref_payment.getC_Currency_ID());
+		pay.setPayAmt(ref_payment.getPayAmt());
+		pay.setTenderType(ref_payment.getTenderType());
+		//	Support for Set SO Trx and Ref Payment
+		pay.setIsReceipt(!p_IsSOTrx);
+		pay.setRef_Payment_ID(Ref_Payment_ID);
 		pay.saveEx(get_TrxName());
 		
 		if(pay.getPayAmt().compareTo(BigDecimal.ZERO)==0){
@@ -124,7 +145,7 @@ public class CreateCheckReturn extends SvrProcess {
 		}
 	}
 	
-	public void createDebitNoteCHR(int BPartner, int Receipt_ID, int DocType, int Charge, Timestamp DateTrx) throws AdempiereUserError {
+	public void createDebitNoteCHR(int BPartner, int Ref_Payment_ID, int DocType, int Charge, Timestamp DateTrx) throws AdempiereUserError {
 		//	Create Debit Note
 		debitNoteCHR = new MInvoice(getCtx(), 0, get_TrxName());
 		debitNoteCHR.setAD_Org_ID(p_AD_Org_ID);
@@ -150,7 +171,7 @@ public class CreateCheckReturn extends SvrProcess {
 		ResultSet rs = null;
 		try {
 			ps = DB.prepareStatement(sql.toString(), get_TrxName());
-			ps.setInt(1, Receipt_ID);
+			ps.setInt(1, Ref_Payment_ID);
 			rs = ps.executeQuery();
 			while (rs.next())
 			{
@@ -189,7 +210,7 @@ public class CreateCheckReturn extends SvrProcess {
 		if(debitNoteCHR.processIt(MInvoice.DOCACTION_Complete)){
 			debitNoteCHR.saveEx();
 			//	Set Debit Note into Receipt
-			MPayment receipt = new MPayment(getCtx(), Receipt_ID, get_TrxName());
+			MPayment receipt = new MPayment(getCtx(), Ref_Payment_ID, get_TrxName());
 			receipt.set_ValueOfColumn("LVE_InvoiceAffected_ID", debitNoteCHR.getC_Invoice_ID());
 			receipt.saveEx();
 		}
@@ -263,5 +284,92 @@ public class CreateCheckReturn extends SvrProcess {
 			//	Direct Print
 			re.print();
 		}
+	}
+	/**
+	 * UnAllocated Documents from Reference Payment
+	 * @param C_BPartner_ID
+	 * @param Ref_Payment_ID
+	 */
+	private void unAllocateDocument(int C_BPartner_ID,int Ref_Payment_ID){
+		//	Get AllocationHdr 
+		String sql = "SELECT DISTINCT ah.C_AllocationHdr_ID "
+				+ "FROM C_AllocationLine al "
+				+ "INNER JOIN C_AllocationHdr ah ON al.C_AllocationHdr_ID = ah.C_AllocationHdr_ID "
+				+ "WHERE ah.DocStatus = 'CO' AND al.C_BPartner_ID = ? AND al.C_Payment_ID = ? ";
+		
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = DB.prepareStatement(sql, get_TrxName());
+			ps.setInt(1, C_BPartner_ID);
+			ps.setInt(2, Ref_Payment_ID);
+			rs = ps.executeQuery();
+			while (rs.next())
+			{
+				MAllocationHdr m_AllHdr = new MAllocationHdr(getCtx(), rs.getInt("C_AllocationHdr_ID"), get_TrxName());
+				if(m_AllHdr.processIt(MAllocationHdr.ACTION_Reverse_Correct)){
+					m_AllHdr.saveEx();
+				}
+				else{
+					throw new AdempiereException(m_AllHdr.getProcessMsg());
+				}
+			}
+		} catch (SQLException e) {
+			addLog(e.getMessage());
+		} finally {
+			DB.close(rs, ps);
+			rs = null; ps = null;
+		}
+	}
+	
+	public void createPayAssignment(Timestamp DateTrx, int Ref_Payment_ID, MPayment payment) throws AdempiereUserError
+	{
+		MAllocationHdr AHeader = new MAllocationHdr(getCtx(), 0, get_TrxName());
+		
+		AHeader.setAD_Org_ID(p_AD_Org_ID);
+		AHeader.setDateTrx(DateTrx);
+		AHeader.setDateAcct(DateTrx);
+		AHeader.setC_Currency_ID(payment.getC_Currency_ID());
+		
+		AHeader.saveEx(get_TrxName());
+		//	First Line
+		MAllocationLine ALine = new MAllocationLine(AHeader);
+		
+		ALine.setAD_Org_ID(p_AD_Org_ID);
+		ALine.setC_BPartner_ID(payment.getC_BPartner_ID());
+		ALine.setC_Payment_ID(payment.getC_Payment_ID());
+		
+		if (payment.isReceipt())
+			ALine.setAmount(payment.getPayAmt());
+		else
+			ALine.setAmount(payment.getPayAmt().negate());
+		
+		ALine.saveEx(get_TrxName());
+		//	Second Line
+		MAllocationLine ALine2 = new MAllocationLine(AHeader);
+		MPayment ref_payment = new MPayment(getCtx(), Ref_Payment_ID, get_TrxName());
+		
+		ALine2.setAD_Org_ID(p_AD_Org_ID);
+		ALine2.setC_BPartner_ID(ref_payment.getC_BPartner_ID());
+		ALine2.setC_Payment_ID(ref_payment.getC_Payment_ID());
+		
+		if (ref_payment.isReceipt())
+			ALine2.setAmount(ref_payment.getPayAmt());
+		else
+			ALine2.setAmount(ref_payment.getPayAmt().negate());
+		
+		ALine2.saveEx(get_TrxName());
+		//	Complete Allocation
+		if(AHeader.processIt(MAllocationHdr.ACTION_Complete))
+			AHeader.saveEx(get_TrxName());
+		else{
+			rollback();
+			throw new AdempiereException(AHeader.getProcessMsg());
+		}
+		//	Allocate Documents
+		payment.setIsAllocated(true);
+		payment.saveEx(get_TrxName());
+		ref_payment.setIsAllocated(true);
+		ref_payment.saveEx(get_TrxName());
 	}
 }
