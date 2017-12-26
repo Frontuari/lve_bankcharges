@@ -1,5 +1,6 @@
 package org.frontuari.events;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -7,6 +8,7 @@ import java.sql.SQLException;
 import org.adempiere.base.event.AbstractEventHandler;
 import org.adempiere.base.event.IEventTopics;
 import org.adempiere.exceptions.AdempiereException;
+import org.compiere.model.MBankAccount;
 import org.compiere.model.MDocType;
 import org.compiere.model.MOrgInfo;
 import org.compiere.model.MPayment;
@@ -45,14 +47,15 @@ public class FTUEventHandler extends AbstractEventHandler{
 			if(type.equalsIgnoreCase(IEventTopics.DOC_AFTER_COMPLETE)){
 				MPayment pay = (MPayment)po;
 				MOrgInfo oi = MOrgInfo.get(po.getCtx(), pay.getAD_Org_ID(),po.get_TrxName());
+				MBankAccount ba = new MBankAccount(po.getCtx(), pay.getC_BankAccount_ID(), po.get_TrxName());
 				//	Get Document Type from Payment Object
 				MDocType dt = new MDocType(po.getCtx(),pay.getC_DocType_ID(),po.get_TrxName());
-				//	Check if Org Trx is Special Tax Payer
+				//	Check if Org Trx is Special Tax Payer for generate IGTF
 				if(oi.get_ValueAsBoolean("IsSpecialTaxPayer")){
 					//	Not Reversal Document 
 					if(pay.getReversal_ID()==0
 							//	Not Bank Account Type Cash Journal
-							&& !pay.getC_BankAccount().getBankAccountType().equalsIgnoreCase("B") 
+							&& !pay.getC_BankAccount().getBankAccountType().equalsIgnoreCase(MBankAccount.BANKACCOUNTTYPE_Cash) 
 							//	Not Check Return Document
 							&& !dt.get_ValueAsBoolean("IsCheckReturn")){
 						//	Build Where Clause
@@ -72,45 +75,79 @@ public class FTUEventHandler extends AbstractEventHandler{
 							MLVE_IGTF igtf = new MLVE_IGTF(po.getCtx(),IGTF_ID,po.get_TrxName());  
 							String sql ="SELECT * FROM LVE_IGTF_Exception "
 									+ "WHERE LVE_IGTF_ID = ? " 
-									+ "AND (CASE WHEN IsProprietaryTransfer = 'Y' THEN EXISTS (SELECT 1 FROM AD_OrgInfo oi,C_BPartner bp,LCO_TaxIdType tp "
+									+ "AND ((IsProprietaryTransfer = 'Y' AND EXISTS (SELECT 1 FROM AD_OrgInfo oi,C_BPartner bp,LCO_TaxIdType tp "
 									+ "WHERE (tp.LCO_TaxIdType_ID = bp.LCO_TaxIdType_ID OR bp.LCO_TaxIdType_ID IS NULL) AND (COALESCE(tp.Name,'')||bp.TaxID)=REPLACE(oi.TaxID,'-','') "
-									+ "AND bp.C_BPartner_ID = ? AND oi.AD_Org_ID = ?) ELSE TRUE END)"
-									+ "AND (C_BPartner_ID = ? OR C_BPartner_ID IS NULL) "
-									+ "AND (C_Charge_ID = ? OR C_Charge_ID IS NULL) ";
+									+ "AND bp.C_BPartner_ID = ?)) OR IsProprietaryTransfer = 'N') "
+									+ "AND ((C_BPartner_ID = ? AND IsProprietaryTransfer = 'N') OR C_BPartner_ID IS NULL) "
+									+ "AND (C_Charge_ID = ? OR C_Charge_ID IS NULL) "
+									+ "AND (TenderType = ? OR TenderType IS NULL) "
+									+ "AND (C_Bank_ID = ? OR C_Bank_ID IS NULL) "
+									+ "AND (C_DocType_ID = ? OR C_DocType_ID IS NULL) ";
 							PreparedStatement pst = null;
 							try {
 								pst = DB.prepareStatement(sql, null);
 								pst.setInt(1, igtf.getLVE_IGTF_ID());
 								pst.setInt(2, pay.getC_BPartner_ID());
-								pst.setInt(3, pay.getAD_Org_ID());
-								pst.setInt(4, pay.getC_BPartner_ID());
-								pst.setInt(5, pay.getC_Charge_ID());
+								pst.setInt(3, pay.getC_BPartner_ID());
+								pst.setInt(4, pay.getC_Charge_ID());
+								pst.setString(5, pay.getTenderType());
+								pst.setInt(6, pay.getC_BankAccount().getC_Bank_ID());
+								pst.setInt(7, pay.getC_DocType_ID());
 								ResultSet rs = pst.executeQuery();
 								if (rs.next()) {
-									log.warning("payment / receipt "+pay.getDocumentNo()+" exempt from tax on large financial transactions");
+									if(igtf.get_ValueAsBoolean("IsReceiptApply")){
+										MPayment igtfPayment = new MPayment(po.getCtx(), 0, po.get_TrxName());
+										po.copyValues(pay, igtfPayment);	
+										igtfPayment.setC_DocType_ID(igtf.getC_DocType_ID());
+										if(igtfPayment.getDescription() != null){
+											igtfPayment.addDescription(igtf.getValue());
+										}
+										else{
+											igtfPayment.setDescription(igtf.getValue());
+										}
+										igtfPayment.setC_Charge_ID(igtf.getC_Charge_ID());
+										igtfPayment.setTenderType(igtf.getTenderType());
+										igtfPayment.setPayAmt(igtf.calculateTax(pay.getPayAmt()));
+										igtfPayment.saveEx();
+										if(igtfPayment.processIt(MPayment.ACTION_Complete)){
+											igtfPayment.saveEx();
+											pay.setRef_Payment_ID(igtfPayment.getC_Payment_ID());
+											pay.saveEx();
+										}
+										else{
+											throw new AdempiereException(igtfPayment.getProcessMsg());
+										}
+									}
+									else{
+										log.warning("@C_Payment_ID@ "+pay.getDocumentNo()+" @exempt@ @of@ @LVE_IGTF_ID@");
+									}
 								}
 								else{
-									MPayment igtfPayment = new MPayment(po.getCtx(), 0, po.get_TrxName());
-									po.copyValues(pay, igtfPayment);	
-									igtfPayment.setC_DocType_ID(igtf.getC_DocType_ID());
-									System.out.println(igtfPayment.getDescription());
-									if(igtfPayment.getDescription() != null){
-										igtfPayment.addDescription(igtf.getValue());
-									}
-									else{
-										igtfPayment.setDescription(igtf.getValue());
-									}
-									igtfPayment.setC_Charge_ID(igtf.getC_Charge_ID());
-									igtfPayment.setTenderType(igtf.getTenderType());
-									igtfPayment.setPayAmt(igtf.calculateTax(pay.getPayAmt()));
-									igtfPayment.saveEx();
-									if(igtfPayment.processIt(MPayment.ACTION_Complete)){
+									if(igtf.get_ValueAsBoolean("IsPayApply")){
+										MPayment igtfPayment = new MPayment(po.getCtx(), 0, po.get_TrxName());
+										po.copyValues(pay, igtfPayment);	
+										igtfPayment.setC_DocType_ID(igtf.getC_DocType_ID());
+										if(igtfPayment.getDescription() != null){
+											igtfPayment.addDescription(igtf.getValue());
+										}
+										else{
+											igtfPayment.setDescription(igtf.getValue());
+										}
+										igtfPayment.setC_Charge_ID(igtf.getC_Charge_ID());
+										igtfPayment.setTenderType(igtf.getTenderType());
+										igtfPayment.setPayAmt(igtf.calculateTax(pay.getPayAmt()));
 										igtfPayment.saveEx();
-										pay.setRef_Payment_ID(igtfPayment.getC_Payment_ID());
-										pay.saveEx();
+										if(igtfPayment.processIt(MPayment.ACTION_Complete)){
+											igtfPayment.saveEx();
+											pay.setRef_Payment_ID(igtfPayment.getC_Payment_ID());
+											pay.saveEx();
+										}
+										else{
+											throw new AdempiereException(igtfPayment.getProcessMsg());
+										}
 									}
 									else{
-										throw new AdempiereException(igtfPayment.getProcessMsg());
+										log.warning("@C_Payment_ID@ "+pay.getDocumentNo()+" @exempt@ @of@ @LVE_IGTF_ID@");
 									}
 								}
 							} catch (SQLException e) {
@@ -121,6 +158,30 @@ public class FTUEventHandler extends AbstractEventHandler{
 					    		pst = null;
 					    	}
 						}
+					}
+				}
+				//	Generate POS commission when the POS is closed
+				if(pay.isReceipt() 
+						&& ba.get_ValueAsBoolean("IsAssignedtoPOS") 
+						&& pay.getTenderType().equals(ba.get_ValueAsString("TenderTypePOS"))){
+					MPayment commissionPay = new MPayment(po.getCtx(), 0, po.get_TrxName());
+					po.copyValues(pay, commissionPay);
+					commissionPay.setIsReceipt(false);
+					commissionPay.setC_DocType_ID(ba.get_ValueAsInt("C_DocType_ID"));
+					commissionPay.setTenderType(ba.get_ValueAsString("TenderType"));
+					commissionPay.setC_Charge_ID(ba.get_ValueAsInt("C_Charge_ID"));
+					//	Calculate Commission Amt
+					BigDecimal Commission = (BigDecimal)ba.get_Value("Commission");
+					BigDecimal CommissionAmt = pay.getPayAmt().multiply(Commission.divide(new BigDecimal(100))).setScale(pay.getC_Currency().getStdPrecision(),BigDecimal.ROUND_HALF_UP);
+					commissionPay.setPayAmt(CommissionAmt);
+					commissionPay.saveEx();
+					if(commissionPay.processIt(MPayment.ACTION_Complete)){
+						commissionPay.saveEx();
+						pay.setRef_Payment_ID(commissionPay.getC_Payment_ID());
+						pay.saveEx();
+					}
+					else{
+						throw new AdempiereException(commissionPay.getProcessMsg());
 					}
 				}
 				
