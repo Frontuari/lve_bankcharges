@@ -97,7 +97,8 @@ public class FTUEventHandler extends AbstractEventHandler{
 								if (rs.next()) {
 									if(igtf.get_ValueAsBoolean("IsReceiptApply")){
 										MPayment igtfPayment = new MPayment(po.getCtx(), 0, po.get_TrxName());
-										po.copyValues(pay, igtfPayment);	
+										po.copyValues(pay, igtfPayment);
+										igtfPayment.setAD_Org_ID(pay.getAD_Org_ID());
 										igtfPayment.setC_DocType_ID(igtf.getC_DocType_ID());
 										if(igtfPayment.getDescription() != null){
 											igtfPayment.addDescription(igtf.getValue());
@@ -125,7 +126,8 @@ public class FTUEventHandler extends AbstractEventHandler{
 								else{
 									if(igtf.get_ValueAsBoolean("IsPayApply")){
 										MPayment igtfPayment = new MPayment(po.getCtx(), 0, po.get_TrxName());
-										po.copyValues(pay, igtfPayment);	
+										po.copyValues(pay, igtfPayment); 
+										igtfPayment.setAD_Org_ID(pay.getAD_Org_ID());
 										igtfPayment.setC_DocType_ID(igtf.getC_DocType_ID());
 										if(igtfPayment.getDescription() != null){
 											igtfPayment.addDescription(igtf.getValue());
