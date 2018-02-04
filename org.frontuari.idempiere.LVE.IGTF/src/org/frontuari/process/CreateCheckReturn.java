@@ -40,6 +40,7 @@ public class CreateCheckReturn extends SvrProcess {
 	private MInvoice debitNoteCHR;
 	private MPayment pay;
 	private boolean p_IsSOTrx;
+	private int p_C_PaymentTerm_ID;
 	
 	@Override
 	protected void prepare() {
@@ -71,6 +72,8 @@ public class CreateCheckReturn extends SvrProcess {
 	    	   p_PrintDirect = parameter.getParameterAsBoolean();
 	       else if(name.equalsIgnoreCase("IsSOTrx"))
 	    	   p_IsSOTrx = parameter.getParameterAsBoolean();
+	       else if (name.equalsIgnoreCase("C_PaymentTerm_ID"))
+	    	   p_C_PaymentTerm_ID = parameter.getParameterAsInt();
 	       else
 	         log.log(Level.SEVERE, "Unknown Parameter:" + name);
 	     }
@@ -83,7 +86,7 @@ public class CreateCheckReturn extends SvrProcess {
 			//	create a Payment
 			createPayment(p_C_BankAccount_ID, p_C_BPartner_ID, p_Ref_Payment_ID, p_C_DocType_ID, p_DateAcct);
 			//	create Debit Note for Check Return
-			createDebitNoteCHR(p_C_BPartner_ID, p_Ref_Payment_ID, p_C_DocTypeTarget_ID, p_C_Charge_ID, p_DateTrx);
+			createDebitNoteCHR(p_C_BPartner_ID, p_Ref_Payment_ID, p_C_DocTypeTarget_ID, p_C_Charge_ID, p_C_PaymentTerm_ID, p_DateTrx);
 		    //	Set Value into Object pay for created Allocation
 			createAssignment(p_DateTrx, debitNoteCHR, pay); 
 			
@@ -145,7 +148,7 @@ public class CreateCheckReturn extends SvrProcess {
 		}
 	}
 	
-	public void createDebitNoteCHR(int BPartner, int Ref_Payment_ID, int DocType, int Charge, Timestamp DateTrx) throws AdempiereUserError {
+	public void createDebitNoteCHR(int BPartner, int Ref_Payment_ID, int DocType, int Charge, int PaymentTerm, Timestamp DateTrx) throws AdempiereUserError {
 		//	Create Debit Note
 		debitNoteCHR = new MInvoice(getCtx(), 0, get_TrxName());
 		debitNoteCHR.setAD_Org_ID(p_AD_Org_ID);
@@ -153,6 +156,7 @@ public class CreateCheckReturn extends SvrProcess {
 		debitNoteCHR.setC_DocTypeTarget_ID(DocType);
 		debitNoteCHR.setDateInvoiced(DateTrx);
 		debitNoteCHR.setDateAcct(DateTrx);
+		debitNoteCHR.setC_PaymentTerm_ID(PaymentTerm);
 		//	get Charge Object
 		MCharge charge = new MCharge(getCtx(), Charge, get_TrxName());
 		//	Get Invoices Affected
@@ -161,10 +165,10 @@ public class CreateCheckReturn extends SvrProcess {
 			+ "FROM C_Payment p "
 			+ "LEFT JOIN (SELECT al.C_Invoice_ID,al.Amount,al.C_Payment_ID,cal.Lines FROM C_AllocationHdr ah "
 			+ "INNER JOIN C_AllocationLine al ON al.C_AllocationHdr_ID = ah.C_AllocationHdr_ID "
-			+ "INNER JOIN (SELECT C_AllocationHdr_ID,COUNT(C_AllocationLine_ID) AS Lines FROM C_AllocationLine "
-			+ "GROUP BY 1) cal ON al.C_AllocationHdr_ID = cal.C_AllocationHdr_ID "
+			+ "INNER JOIN (SELECT C_AllocationHdr_ID,C_Payment_ID,COUNT(C_AllocationLine_ID) AS Lines FROM C_AllocationLine "
+			+ "GROUP BY 1,2) cal ON al.C_AllocationHdr_ID = cal.C_AllocationHdr_ID AND al.C_Payment_ID = cal.C_Payment_ID "
 			+ "WHERE ah.DocStatus = 'CO') al ON p.C_Payment_ID = al.C_Payment_ID "
-			+ "WHERE p.DocStatus = 'CO' AND p.TenderType IN ('K','A')"
+			+ "WHERE p.DocStatus = 'CO' AND p.TenderType IN ('K','A') "
 			+ "AND p.C_Payment_ID = ? "); 
 		
 		PreparedStatement ps = null;
