@@ -5,7 +5,7 @@ import org.compiere.process.ProcessCall;
 import org.frontuari.process.BankTransfer;
 import org.frontuari.process.CreateCheckReturn;
 
-public class FTUProcessFactory implements IProcessFactory {
+public class LVE_FrontuariProcessFactory implements IProcessFactory {
 
 	@Override
 	public ProcessCall newProcessInstance(String className) {

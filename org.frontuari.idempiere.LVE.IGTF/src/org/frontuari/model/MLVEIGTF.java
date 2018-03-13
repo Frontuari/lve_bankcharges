@@ -7,16 +7,16 @@ import java.util.Properties;
 import org.compiere.model.MClient;
 import org.compiere.model.MCurrency;
 
-public class MLVE_IGTF extends X_LVE_IGTF {
+public class MLVEIGTF extends X_LVE_IGTF {
 
 	private static final long serialVersionUID = -4748321544982518978L;
 
-	public MLVE_IGTF(Properties ctx, int LVE_IGTF_ID, String trxName) {
+	public MLVEIGTF(Properties ctx, int LVE_IGTF_ID, String trxName) {
 		super(ctx, LVE_IGTF_ID, trxName);
 		// TODO Auto-generated constructor stub
 	}
 
-	public MLVE_IGTF(Properties ctx, ResultSet rs, String trxName) {
+	public MLVEIGTF(Properties ctx, ResultSet rs, String trxName) {
 		super(ctx, rs, trxName);
 		// TODO Auto-generated constructor stub
 	}

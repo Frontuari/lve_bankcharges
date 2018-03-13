@@ -3,7 +3,7 @@ package org.frontuari.info;
 /**
  * Feature Bank Charges Plugin 
  */
-public class FTUPluginFeatures {
+public class LVE_FrontuariPluginFeatures {
 
 	public static final String[] rootPackage = new String[] {"org.frontuari.model"};
 	

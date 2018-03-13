@@ -17,16 +17,16 @@ import org.compiere.model.Query;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.osgi.service.event.Event;
-import org.frontuari.model.MLVE_IGTF;
+import org.frontuari.model.MLVEIGTF;
 import org.frontuari.model.X_LVE_IGTF;
 /**
  * Event Handler to Payment for create IGTF Trx
  * @author Jorge Colmenarez, 2017-09-16, jcolmenarez@frontari.com, Frontari, C.A. www.frontuari.com
  *
  */
-public class FTUEventHandler extends AbstractEventHandler{
+public class LVE_FrontuariEventHandler extends AbstractEventHandler{
 	
-	CLogger log = CLogger.getCLogger(FTUEventHandler.class);
+	CLogger log = CLogger.getCLogger(LVE_FrontuariEventHandler.class);
 
 	@Override
 	protected void initialize() {
@@ -72,7 +72,7 @@ public class FTUEventHandler extends AbstractEventHandler{
 								.setOrderBy("ValidFrom DESC")
 								.firstId();
 						if(IGTF_ID > 0){
-							MLVE_IGTF igtf = new MLVE_IGTF(po.getCtx(),IGTF_ID,po.get_TrxName());  
+							MLVEIGTF igtf = new MLVEIGTF(po.getCtx(),IGTF_ID,po.get_TrxName());  
 							String sql ="SELECT * FROM LVE_IGTF_Exception "
 									+ "WHERE LVE_IGTF_ID = ? " 
 									+ "AND ((IsProprietaryTransfer = 'Y' AND EXISTS (SELECT 1 FROM AD_OrgInfo oi,C_BPartner bp,LCO_TaxIdType tp "

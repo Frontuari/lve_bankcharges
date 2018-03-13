@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.frontuari.idempiere.LVE.bankcharges.payment.event.handler">
-   <implementation class="org.frontuari.events.FTUEventHandler"/>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.frontuari.idempiere.LVE.bankcharges.FTUEventHandler">
+   <implementation class="org.frontuari.events.LVE_FrontuariEventHandler"/>
    <property name="service.ranking" type="Integer" value="100"/>
    <reference bind="bindEventManager" cardinality="1..1" interface="org.adempiere.base.event.IEventManager" name="IEventManager" policy="static"/>
 </scr:component>

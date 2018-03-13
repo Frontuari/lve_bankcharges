@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.frontuari.idempiere.LVE.bankcharges.FTU.process.factory">
-   <implementation class="org.frontuari.factories.FTUProcessFactory"/>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.frontuari.idempiere.LVE.bankcharges.FTUProcessFactory">
+   <implementation class="org.frontuari.factories.LVE_FrontuariProcessFactory"/>
    <property name="service.ranking" type="Integer" value="100"/>
    <service>
       <provide interface="org.adempiere.base.IProcessFactory"/>
