@@ -16,6 +16,7 @@ import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
+import org.compiere.util.Msg;
 import org.osgi.service.event.Event;
 import org.frontuari.model.MLVEIGTF;
 import org.frontuari.model.X_LVE_IGTF;
@@ -120,7 +121,7 @@ public class LVE_FrontuariEventHandler extends AbstractEventHandler{
 										}
 									}
 									else{
-										log.warning("@C_Payment_ID@ "+pay.getDocumentNo()+" @exempt@ @of@ @LVE_IGTF_ID@");
+										log.warning(Msg.translate(po.getCtx(), "C_Payment_ID")+" "+pay.getDocumentNo()+" "+Msg.translate(po.getCtx(), "exempt")+" "+Msg.translate(po.getCtx(), "of")+" "+Msg.translate(po.getCtx(), "LVE_IGTF_ID"));
 									}
 								}
 								else{
@@ -149,7 +150,7 @@ public class LVE_FrontuariEventHandler extends AbstractEventHandler{
 										}
 									}
 									else{
-										log.warning("@C_Payment_ID@ "+pay.getDocumentNo()+" @exempt@ @of@ @LVE_IGTF_ID@");
+										log.warning(Msg.translate(po.getCtx(), "C_Payment_ID")+" "+pay.getDocumentNo()+" "+Msg.translate(po.getCtx(), "exempt")+" "+Msg.translate(po.getCtx(), "of")+" "+Msg.translate(po.getCtx(), "LVE_IGTF_ID"));
 									}
 								}
 							} catch (SQLException e) {
