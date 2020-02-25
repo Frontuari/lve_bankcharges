@@ -62,7 +62,7 @@ public class B_MercantilPE implements PaymentExport {
 	 *  @param file file to export checks
 	 *  @return number of lines
 	 */
-	public int exportToFile (MPaySelectionCheck[] checks, File file, StringBuffer err)
+	public int exportToFile (MPaySelectionCheck[] checks, boolean depositBatch, String paymentRule, File file, StringBuffer err)
 	{
 		if (checks == null || checks.length == 0)
 			return 0;
@@ -111,9 +111,19 @@ public class B_MercantilPE implements PaymentExport {
 		String iden_Type_Org = orgInfo.getTaxID().substring(0,1);
 		
 		// Batch Document No
-		String batchDocNo = m_PaymentBatch.getDocumentNo();
-		batchDocNo = batchDocNo.substring(0, (batchDocNo.length() >= 15 ? 15 : batchDocNo.length()));
-		batchDocNo = String.format("%1$-" + 15 + "s", batchDocNo);
+		String batchDocNo;
+		if(depositBatch)
+		{
+			batchDocNo = m_PaymentBatch.getDocumentNo();
+			batchDocNo = batchDocNo.substring(0, (batchDocNo.length() >= 15 ? 15 : batchDocNo.length()));
+			batchDocNo = String.format("%1$-" + 15 + "s", batchDocNo);
+		}
+		else
+		{
+			batchDocNo = checks[0].getDocumentNo();
+			batchDocNo = batchDocNo.substring(0, (batchDocNo.length() >= 15 ? 15 : batchDocNo.length()));
+			batchDocNo = String.format("%1$-" + 15 + "s", batchDocNo);
+		}
 		
 		
 		
@@ -170,11 +180,12 @@ public class B_MercantilPE implements PaymentExport {
 				//	Payment Detail
 				m_Payment = (MPayment) mpp.getC_Payment();
 				//	Process Document No
-				String docNo = m_Payment.getDocumentNo();
+				String docNo = mpp.getDocumentNo(); //m_Payment.getDocumentNo();
 				docNo = docNo.substring(0, (docNo.length() >= 8? 8: docNo.length()));
 				docNo = String.format("%1$" + 8 + "s", docNo).replace(" ", "0");
 				//	Payment Amount
-				String amt = String.format("%.2f", m_Payment.getPayAmt().abs()).replace(".", "").replace(",", "");
+				//String amt = String.format("%.2f", m_Payment.getPayAmt().abs()).replace(".", "").replace(",", "");
+				String amt = String.format("%.2f", mpp.getPayAmt().abs()).replace(".", "").replace(",", "");
 				amt = String.format("%1$" + 17 + "s", amt).replace(" ", "0");
 			
 				//	Client ID
