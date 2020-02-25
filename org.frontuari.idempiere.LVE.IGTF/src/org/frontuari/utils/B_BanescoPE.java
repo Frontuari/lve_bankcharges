@@ -14,6 +14,7 @@
  * All Rights Reserved.                                                       *
  * Contributor(s): Yamel Senih www.erpconsultoresyasociados.com               *
  *****************************************************************************/
+//Add import payment class
 package org.frontuari.utils;
 
 import java.io.File;
